@@ -288,3 +288,22 @@ function push(out: MimeSymbol[], kind: SymbolKind, name: string, node: TreeSitte
         endLine: node.endPosition.row + 1,
     });
 }
+
+// References query for tree-sitter-swift (SPEC §16). Swift doesn't
+// syntactically distinguish a function call from an initializer, so (like
+// Python) `Helper()` classifies as `call`. Imports are module names (like Go) —
+// no bound symbol to join — so they are not emitted.
+//
+//   inheritance_specifier → inherit (class/struct : Super, protocol conformance)
+//   call_expression       → call (free calls + initializers; member calls via
+//                           the navigation suffix's trailing identifier)
+//   type_annotation       → type (property/parameter user types)
+export const refsQuery = `
+(inheritance_specifier (user_type (type_identifier) @ref.inherit))
+
+(call_expression (simple_identifier) @ref.call)
+(call_expression (navigation_expression (navigation_suffix (simple_identifier) @ref.call)))
+
+(type_annotation (user_type (type_identifier) @ref.type))
+(parameter (user_type (type_identifier) @ref.type))
+`;
