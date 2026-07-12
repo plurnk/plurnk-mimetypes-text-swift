@@ -1,6 +1,6 @@
 {
     "name": "@plurnk/plurnk-mimetypes-text-swift",
-    "version": "0.2.7",
+    "version": "1.0.0",
     "description": "text/x-swift mimetype handler for plurnk-service. Tier 2: tree-sitter-swift grammar built to WASM and shipped pre-built in this package. Covers Swift 6 features (macros, parameter packs, typed throws, noncopyable types, ownership modifiers).",
     "type": "module",
     "license": "MIT",
