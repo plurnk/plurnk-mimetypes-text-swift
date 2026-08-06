@@ -1,4 +1,5 @@
-import type { MimeSymbol, SymbolKind, TreeSitterNode } from "@plurnk/plurnk-mimetypes";
+import { treeSitterSpan } from "@plurnk/plurnk-mimetypes";
+import type { SymbolKind, TreeSitterNode, TreeSitterSymbolProjection } from "@plurnk/plurnk-mimetypes";
 
 // Swift SPEC §3 mapping for tree-sitter-swift.
 //
@@ -21,13 +22,13 @@ import type { MimeSymbol, SymbolKind, TreeSitterNode } from "@plurnk/plurnk-mime
 //   protocol_function_declaration          → method (inside protocol_body)
 //   protocol_property_declaration          → field (inside protocol_body)
 //   associatedtype_declaration             → type (inside protocol_body)
-export function extract(root: TreeSitterNode): MimeSymbol[] {
-    const out: MimeSymbol[] = [];
+export function extract(root: TreeSitterNode): TreeSitterSymbolProjection[] {
+    const out: TreeSitterSymbolProjection[] = [];
     walk(root, out, /*inBody*/ false);
     return out;
 }
 
-function walk(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): void {
+function walk(node: TreeSitterNode, out: TreeSitterSymbolProjection[], inBody: boolean): void {
     for (let i = 0; i < node.namedChildCount; i += 1) {
         const child = node.namedChild(i);
         if (!child) continue;
@@ -35,7 +36,7 @@ function walk(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): void {
     }
 }
 
-function dispatch(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): void {
+function dispatch(node: TreeSitterNode, out: TreeSitterSymbolProjection[], inBody: boolean): void {
     switch (node.type) {
         case "class_declaration": {
             const keyword = firstUnnamedChildType(node);
@@ -68,8 +69,7 @@ function dispatch(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): voi
             out.push({
                 name,
                 kind: inBody ? "method" : "function",
-                line: node.startPosition.row + 1,
-                endLine: node.endPosition.row + 1,
+                span: treeSitterSpan(node),
                 params: extractFunctionParams(node),
             });
             return;
@@ -78,8 +78,7 @@ function dispatch(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): voi
             out.push({
                 name: "init",
                 kind: "method",
-                line: node.startPosition.row + 1,
-                endLine: node.endPosition.row + 1,
+                span: treeSitterSpan(node),
                 params: extractFunctionParams(node),
             });
             return;
@@ -87,16 +86,14 @@ function dispatch(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): voi
             out.push({
                 name: "deinit",
                 kind: "method",
-                line: node.startPosition.row + 1,
-                endLine: node.endPosition.row + 1,
+                span: treeSitterSpan(node),
             });
             return;
         case "subscript_declaration":
             out.push({
                 name: "subscript",
                 kind: "method",
-                line: node.startPosition.row + 1,
-                endLine: node.endPosition.row + 1,
+                span: treeSitterSpan(node),
                 params: extractFunctionParams(node),
             });
             return;
@@ -126,8 +123,7 @@ function dispatch(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): voi
                 out.push({
                     name,
                     kind: "method",
-                    line: node.startPosition.row + 1,
-                    endLine: node.endPosition.row + 1,
+                    span: treeSitterSpan(node),
                     params: extractFunctionParams(node),
                 });
             }
@@ -148,7 +144,7 @@ function dispatch(node: TreeSitterNode, out: MimeSymbol[], inBody: boolean): voi
     }
 }
 
-function emitEnumBody(body: TreeSitterNode, out: MimeSymbol[]): void {
+function emitEnumBody(body: TreeSitterNode, out: TreeSitterSymbolProjection[]): void {
     for (let i = 0; i < body.namedChildCount; i += 1) {
         const child = body.namedChild(i);
         if (!child) continue;
@@ -280,12 +276,11 @@ function isScreamingSnake(name: string): boolean {
     return hasLetter;
 }
 
-function push(out: MimeSymbol[], kind: SymbolKind, name: string, node: TreeSitterNode): void {
+function push(out: TreeSitterSymbolProjection[], kind: SymbolKind, name: string, node: TreeSitterNode): void {
     out.push({
         name,
         kind,
-        line: node.startPosition.row + 1,
-        endLine: node.endPosition.row + 1,
+        span: treeSitterSpan(node),
     });
 }
 

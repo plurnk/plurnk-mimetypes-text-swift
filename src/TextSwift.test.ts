@@ -150,3 +150,22 @@ describe("TextSwift — deep-json channel (inherits TreeSitterExtractor walker)"
         assert.equal(await h().deepJson(new Uint8Array([1, 2, 3])), null);
     });
 });
+
+describe("TextSwift — parser coordinates", () => {
+    it("materializes Unicode spans across LF, CRLF, and CR boundaries", async () => {
+        const firstLine = "let s = \"😀e\u0301\"";
+        for (const separator of ["\n", "\r\n", "\r"]) {
+            const symbols = await h().extractRaw(`${firstLine}${separator}func f() {}`);
+            const first = symbols.find((symbol) => symbol.name === "s");
+            const second = symbols.find((symbol) => symbol.name === "f");
+            assert.deepEqual(first && {
+                line: first.line,
+                column: first.column,
+                endLine: first.endLine,
+                endColumn: first.endColumn,
+            }, { line: 1, column: 1, endLine: 1, endColumn: Array.from(firstLine).length + 1 });
+            assert.equal(second?.line, 2);
+            assert.equal(second?.column, 1);
+        }
+    });
+});

@@ -1,4 +1,4 @@
-import { TreeSitterExtractor } from "@plurnk/plurnk-mimetypes";
+import { materializeTreeSitterSymbols, TreeSitterExtractor } from "@plurnk/plurnk-mimetypes";
 import type {
     HandlerContent,
     MimeRef,
@@ -45,14 +45,18 @@ export default class TextSwift extends TreeSitterExtractor {
         return parser as unknown as TreeSitterParser;
     }
 
-    protected extractFromTree(tree: TreeSitterTree, _content: HandlerContent): MimeSymbol[] {
-        return extract(tree.rootNode);
+    protected extractFromTree(tree: TreeSitterTree, content: string): MimeSymbol[] {
+        return materializeTreeSitterSymbols(content, extract(tree.rootNode));
     }
 
     // References channel (SPEC §16): inherit / call / type edges. The base
     // collectRefs() owns parse/compile/run/cleanup; no wrap needed (every
     // capture is a direct identifier, container resolves by line containment).
     override references(content: HandlerContent): Promise<MimeRef[]> {
-        return this.collectRefs(content, refsQuery, (root) => extract(root));
+        return this.collectRefs(
+            content,
+            refsQuery,
+            (root, source) => materializeTreeSitterSymbols(source, extract(root)),
+        );
     }
 }
